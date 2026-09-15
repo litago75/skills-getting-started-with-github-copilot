@@ -44,8 +44,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
             removeButton.type = "button";
             removeButton.className = "remove-participant";
-            removeButton.dataset.activity = encodeURIComponent(name);
-            removeButton.dataset.email = encodeURIComponent(participant);
+            removeButton.dataset.activity = name;
+            removeButton.dataset.email = participant;
             removeButton.setAttribute("aria-label", `Remove ${participant}`);
             removeButton.title = "Remove participant";
             removeButton.textContent = "🗑";
@@ -128,7 +128,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     try {
       const response = await fetch(
-        `/activities/${removeButton.dataset.activity}/participants/${removeButton.dataset.email}`,
+        `/activities/${encodeURIComponent(removeButton.dataset.activity)}/participants/${encodeURIComponent(removeButton.dataset.email)}`,
         { method: "DELETE" }
       );
 
