@@ -20,15 +20,6 @@ document.addEventListener("DOMContentLoaded", () => {
         activityCard.className = "activity-card";
 
         const spotsLeft = details.max_participants - details.participants.length;
-        const participants = details.participants.length
-          ? `<ul>${details.participants
-              .map(
-                (participant) =>
-                  `<li><span>${participant}</span><button type="button" class="remove-participant" data-activity="${encodeURIComponent(name)}" data-email="${encodeURIComponent(participant)}" aria-label="Remove ${participant}" title="Remove participant">&#128465;</button></li>`
-              )
-              .join("")}</ul>`
-          : "<p class=\"no-participants\">No participants yet</p>";
-
         activityCard.innerHTML = `
           <h4>${name}</h4>
           <p>${details.description}</p>
@@ -36,9 +27,41 @@ document.addEventListener("DOMContentLoaded", () => {
           <p><strong>Availability:</strong> ${spotsLeft} spots left</p>
           <div class="participants">
             <strong>Participants</strong>
-            ${participants}
           </div>
         `;
+
+        const participantsContainer = activityCard.querySelector(".participants");
+
+        if (details.participants.length) {
+          const participantsList = document.createElement("ul");
+
+          details.participants.forEach((participant) => {
+            const participantItem = document.createElement("li");
+            const participantName = document.createElement("span");
+            const removeButton = document.createElement("button");
+
+            participantName.textContent = participant;
+
+            removeButton.type = "button";
+            removeButton.className = "remove-participant";
+            removeButton.dataset.activity = encodeURIComponent(name);
+            removeButton.dataset.email = encodeURIComponent(participant);
+            removeButton.setAttribute("aria-label", `Remove ${participant}`);
+            removeButton.title = "Remove participant";
+            removeButton.textContent = "🗑";
+
+            participantItem.appendChild(participantName);
+            participantItem.appendChild(removeButton);
+            participantsList.appendChild(participantItem);
+          });
+
+          participantsContainer.appendChild(participantsList);
+        } else {
+          const noParticipants = document.createElement("p");
+          noParticipants.className = "no-participants";
+          noParticipants.textContent = "No participants yet";
+          participantsContainer.appendChild(noParticipants);
+        }
 
         activitiesList.appendChild(activityCard);
 
