@@ -48,7 +48,7 @@ document.addEventListener("DOMContentLoaded", () => {
             removeButton.dataset.email = participant;
             removeButton.setAttribute("aria-label", `Remove ${participant}`);
             removeButton.title = "Remove participant";
-            removeButton.textContent = "🗑";
+            removeButton.textContent = "Remove";
 
             participantItem.appendChild(participantName);
             participantItem.appendChild(removeButton);
