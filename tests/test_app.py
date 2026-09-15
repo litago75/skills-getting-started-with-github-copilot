@@ -1,9 +1,12 @@
 from copy import deepcopy
+from concurrent.futures import ThreadPoolExecutor
+from threading import Event
 
 import pytest
+from fastapi import HTTPException
 from fastapi.testclient import TestClient
 
-from src.app import activities, app
+from src.app import activities, app, signup_for_activity
 
 
 @pytest.fixture
@@ -81,6 +84,53 @@ def test_signup_rejects_duplicate_participant(client):
     assert response.status_code == 400
     assert response.json()["detail"] == "Student already signed up for this activity"
     assert activities[activity_name]["participants"].count(email) == original_count
+
+
+def test_signup_rejects_one_of_two_concurrent_duplicate_requests(client):
+    # Arrange
+    activity_name = "Chess Club"
+    email = "concurrent.student@mergington.edu"
+
+    class CoordinatedParticipants(list):
+        def __init__(self, values):
+            super().__init__(values)
+            self.first_entered = Event()
+            self.second_entered = Event()
+            self.release_contains = Event()
+
+        def __contains__(self, item):
+            if self.first_entered.is_set():
+                self.second_entered.set()
+            else:
+                self.first_entered.set()
+            self.release_contains.wait(timeout=1)
+            return super().__contains__(item)
+
+    activities[activity_name]["participants"] = CoordinatedParticipants([])
+
+    def signup():
+        try:
+            return 200, signup_for_activity(activity_name, email)
+        except HTTPException as exc:
+            return exc.status_code, {"detail": exc.detail}
+
+    # Act
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        first_request = executor.submit(signup)
+        second_request = executor.submit(signup)
+        participants = activities[activity_name]["participants"]
+        participants.first_entered.wait(timeout=1)
+        participants.second_entered.wait(timeout=0.1)
+        participants.release_contains.set()
+        responses = [first_request.result(), second_request.result()]
+
+    # Assert
+    assert sorted(status_code for status_code, _ in responses) == [200, 400]
+    assert any(
+        body == {"detail": "Student already signed up for this activity"}
+        for _, body in responses
+    )
+    assert activities[activity_name]["participants"] == [email]
 
 
 def test_unregister_removes_participant(client):
